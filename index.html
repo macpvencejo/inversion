@@ -48,8 +48,7 @@
         <p class="muted">Auto-actualiza desde FRED <b>vía proxy</b> (Cloudflare Worker) y calcula DXY con la cesta oficial.</p>
       </div>
       <div class="right row">
-        <button class="btn primary" id="saveBtn">Guardar</button>
-        <button class="btn" id="resetBtn">Reset</button>
+        <button class="btn primary" id="updateBtn">Guardar</button>
       </div>
     </div>
 
@@ -257,11 +256,11 @@
     }
 
     // Controles
-    $('resetBtn').addEventListener('click',()=>{ localStorage.removeItem('geo-risk-dashboard-proxy'); location.reload(); });
-    $('fetchBtn').addEventListener('click',fetchAll);
+    //$('resetBtn').addEventListener('click',()=>{ localStorage.removeItem('geo-risk-dashboard-proxy'); location.reload(); });
+    $('updateBtn').addEventListener('click',fetchAll);
 
     // Init
-    render();
+    fetchAll();
   </script>
 </body>
 </html>
