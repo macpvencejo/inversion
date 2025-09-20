@@ -57,7 +57,7 @@
     <!-- Semáforo -->
     <div class="grid g-3" style="align-items:center;margin-top:16px">
       <div class="card" style="grid-column:span 2">
-        <h2>Semáforo global</h2>
+        <h2>Semáforo global (Verde: inversión / Rojo: Liquidez)</h2>
         <div class="row">
           <div id="traffic" class="traffic" title="Semáforo"></div>
           <div>
@@ -70,9 +70,7 @@
       <div class="card">
         <h2>Notas</h2>
         <ul class="light" style="margin-top:8px;line-height:1.5">
-          <li>El <b>BofA Bull &amp; Bear</b> es <i>contrarian</i> (valores bajos suelen ser alcistas).</li>
           <li>Liquidez: usamos Δ % del balance neto <b>(WALCL − RRP)</b> semanal.</li>
-          <li>Activa “Auto al abrir” para cargar automáticamente.</li>
         </ul>
       </div>
     </div>
@@ -98,15 +96,9 @@
       </div>
 
       <div class="card">
-        <div class="row"><h2>Liquidez neta (Δ % WALCL − RRP)</h2><span id="liqBadge" class="badge">—</span></div>
+        <div class="row"><h2>Liquidez neta (Δ % WALCL − RRP) whole assets less eliminations from consolidacion- reverse repurchase agreements </h2><span id="liqBadge" class="badge">—</span></div>
         <div class="row" style="margin-top:6px"><div id="liqDot" class="dot"></div><div class="value" id="liqVal">—</div></div>
         <p class="light" style="margin-top:8px">&gt; 0.20% verde · 0–0.20% ámbar · &lt; 0% rojo</p>
-      </div>
-
-      <div class="card">
-        <div class="row"><h2>BofA Bull &amp; Bear (0–10)</h2><span id="bofaBadge" class="badge">—</span></div>
-        <div class="row" style="margin-top:6px"><div id="bofaDot" class="dot"></div><div class="value" id="bofaVal">—</div></div>
-        <p class="light" style="margin-top:8px">&lt; 2 verde (miedo extremo) · 2–8 ámbar · &gt; 8 rojo (euforia)</p>
       </div>
     </div>
 
@@ -121,7 +113,6 @@
             <div><label>Curva</label><input type="number" step="0.05" id="w-curve" value="0.2"></div>
             <div><label>DXY</label><input type="number" step="0.05" id="w-dxy" value="0.2"></div>
             <div><label>Liquidez</label><input type="number" step="0.05" id="w-liq" value="0.2"></div>
-            <div><label>BofA</label><input type="number" step="0.05" id="w-bofa" value="0.1"></div>
           </div>
         </div>
         <div>
@@ -139,9 +130,6 @@
             <div style="grid-column:span 2;margin-top:6px"><b>Liquidez (Δ %)</b></div>
             <div><label>Verde &gt;</label><input type="number" step="0.01" id="t-liq-green" value="0.2"></div>
             <div><label>Ámbar &gt;</label><input type="number" step="0.01" id="t-liq-yellow" value="0"></div>
-            <div style="grid-column:span 2;margin-top:6px"><b>BofA Bull &amp; Bear</b></div>
-            <div><label>Verde &lt;</label><input type="number" step="0.1" id="t-bofa-green" value="2"></div>
-            <div><label>Ámbar &lt;</label><input type="number" step="0.1" id="t-bofa-yellow" value="8"></div>
           </div>
         </div>
       </div>
@@ -155,10 +143,10 @@
     const $ = id => document.getElementById(id);
 
     const state = {
-      hy_pb:null, curve:null, dxy:null, liq:null, bofa:null,
-      w:{hy:0.3, curve:0.2, dxy:0.2, liq:0.2, bofa:0.1},
+      hy_pb:null, curve:null, dxy:null, liq:null,
+      w:{hy:0.3, curve:0.2, dxy:0.2, liq:0.2},
       t:{hy:{green:400,yellow:600}, curve:{green:0.0,yellow:-0.2},
-         dxy:{green:100,yellow:105}, liq:{green:0.2,yellow:0.0}, bofa:{green:2.0,yellow:8.0}}
+         dxy:{green:100,yellow:105}, liq:{green:0.2,yellow:0.0}}
     };
 
     const lvlFns = {
@@ -166,7 +154,6 @@
       curve:v=>v>state.t.curve.green?'green':(v>state.t.curve.yellow?'yellow':'red'),
       dxy:v=>v<state.t.dxy.green?'green':(v<state.t.dxy.yellow?'yellow':'red'),
       liq:v=>v>state.t.liq.green?'green':(v>state.t.liq.yellow?'yellow':'red'),
-      bofa:v=>v<state.t.bofa.green?'green':(v<state.t.bofa.yellow?'yellow':'red'),
     };
     function badge(el,lvl){ el.className='badge '+(lvl||''); el.textContent=lvl?(lvl==='green'?'favorable':(lvl==='yellow'?'neutral':'tensión')):'—'; }
     function dot(el,lvl){ el.className='dot '+(lvl||''); }
@@ -178,29 +165,26 @@
       const cvLvl  = state.curve==null?null:lvlFns.curve(state.curve);
       const dxLvl  = state.dxy==null?null:lvlFns.dxy(state.dxy);
       const lqLvl  = state.liq==null?null:lvlFns.liq(state.liq);
-      const bbLvl  = state.bofa==null?null:lvlFns.bofa(state.bofa);
 
       $('hyVal').textContent = fmt(state.hy_pb,0)+(state.hy_pb==null?'':' pb'); badge($('hyBadge'),hyLvl); dot($('hyDot'),hyLvl);
       $('curveVal').textContent = fmt(state.curve,2)+(state.curve==null?'':' %');  badge($('curveBadge'),cvLvl); dot($('curveDot'),cvLvl);
       $('dxyVal').textContent = fmt(state.dxy,2);                                      badge($('dxyBadge'),dxLvl); dot($('dxyDot'),dxLvl);
       $('liqVal').textContent = fmt(state.liq,2)+(state.liq==null?'':' %');        badge($('liqBadge'),lqLvl); dot($('liqDot'),lqLvl);
-      $('bofaVal').textContent = state.bofa==null?'—':Number(state.bofa).toFixed(1);    badge($('bofaBadge'),bbLvl); dot($('bofaDot'),bbLvl);
 
       const parts=[]; let wsum=0;
       if(hyLvl){parts.push([toScore(hyLvl),state.w.hy]);wsum+=state.w.hy}
       if(cvLvl){parts.push([toScore(cvLvl),state.w.curve]);wsum+=state.w.curve}
       if(dxLvl){parts.push([toScore(dxLvl),state.w.dxy]);wsum+=state.w.dxy}
       if(lqLvl){parts.push([toScore(lqLvl),state.w.liq]);wsum+=state.w.liq}
-      if(bbLvl){parts.push([toScore(bbLvl),state.w.bofa]);wsum+=state.w.bofa}
 
       const t=$('traffic'), s=$('statusText'), st=$('scoreText'), wt=$('weightsText');
       if(parts.length===0||wsum===0){ t.className='traffic'; s.textContent='Completa los valores';
-        st.textContent=''; wt.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa; return;}
+        st.textContent=''; wt.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq; return;}
       const score = parts.reduce((x,[v,w])=>x+v*w,0)/wsum;
       const lvl = score<0.70?'green':(score>=1.30?'red':'yellow');
       t.className='traffic '+lvl; s.textContent=(lvl==='green'?'Riesgo-ON':(lvl==='yellow'?'Neutro / Precaución':'Riesgo-OFF'));
       st.textContent='Score ponderado: '+score.toFixed(2)+' (0=verde,1=ámbar,2=rojo)';
-      wt.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa;
+      wt.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq;
     }
 
     // ---- FRED vía proxy ----
