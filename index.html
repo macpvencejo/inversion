@@ -109,20 +109,6 @@
       </div>
     </div>
 
-    <!-- Auto-fetch vía proxy -->
-    <div class="card" style="margin-top:16px">
-      <h2>Auto-fetch (FRED, vía proxy)</h2>
-      <div class="row" style="gap:8px;margin-top:8px">
-        <input type="text" id="proxyUrl" placeholder="https://TU-WORKER.workers.dev" style="flex:1">
-        <label class="small"><input type="checkbox" id="autoOnLoad"> Auto al abrir</label>
-        <button class="btn" id="saveKey">Guardar ajustes</button>
-        <button class="btn" id="fetchBtn">Actualizar ahora</button>
-        <span id="fetchStatus" class="light"></span>
-      </div>
-      <div class="light" style="margin-top:6px">No pegues tu API key aquí; está segura como <b>FRED_KEY</b> en el Worker.</div>
-      <div id="lastDates" class="light" style="margin-top:8px"></div>
-    </div>
-
     <!-- Ajustes -->
     <div class="card" style="margin-top:16px">
       <h2>Ajustes</h2>
@@ -174,15 +160,6 @@
          dxy:{green:100,yellow:105}, liq:{green:0.2,yellow:0.0}, bofa:{green:2.0,yellow:8.0}}
     };
 
-    function saveLocal(){ localStorage.setItem('geo-risk-dashboard-proxy',
-      JSON.stringify({state, proxyUrl:$('proxyUrl').value, auto:$('autoOnLoad').checked})); }
-    function loadLocal(){
-      try{ const raw=localStorage.getItem('geo-risk-dashboard-proxy'); if(!raw) return;
-        const obj=JSON.parse(raw); if(obj.state) Object.assign(state,obj.state);
-        if(obj.proxyUrl) $('proxyUrl').value=obj.proxyUrl; if(obj.auto) $('autoOnLoad').checked=true;
-      }catch(e){}
-    }
-
     const lvlFns = {
       hy:v=>v<state.t.hy.green?'green':(v<state.t.hy.yellow?'yellow':'red'),
       curve:v=>v>state.t.curve.green?'green':(v>state.t.curve.yellow?'yellow':'red'),
@@ -227,7 +204,7 @@
 
     // ---- FRED vía proxy ----
     async function proxyFetch(seriesId,start='2020-01-01'){
-      const base=$('proxyUrl').value.trim(); if(!base) throw new Error('Configura tu Proxy URL');
+      const base='https://fred-proxy.macp-vencejo.workers.dev';
       const url=base.replace(/\/$/,'')+`?series_id=${encodeURIComponent(seriesId)}&start=${encodeURIComponent(start)}`;
       const r=await fetch(url); if(!r.ok) throw new Error('Proxy error '+r.status); return r.json();
     }
@@ -272,7 +249,7 @@
         state.dxy = +dxyCalc(+eurusd.value,+usdjpy.value,+gbpusd.value,+usdcad.value,+usdsek.value,+usdchf.value).toFixed(2);
         $('lastDates').textContent += ` · FX ${eurusd.date}`;
 
-        render(); saveLocal();
+        render();
         $('fetchStatus').textContent='OK';
       }catch(e){
         $('fetchStatus').textContent='Error: '+e.message;
@@ -280,15 +257,11 @@
     }
 
     // Controles
-    $('saveBtn').addEventListener('click',()=>{ saveLocal(); alert('Guardado.'); });
     $('resetBtn').addEventListener('click',()=>{ localStorage.removeItem('geo-risk-dashboard-proxy'); location.reload(); });
-    $('saveKey').addEventListener('click',()=>{ saveLocal(); alert('Ajustes guardados.'); });
     $('fetchBtn').addEventListener('click',fetchAll);
-    $('autoOnLoad').addEventListener('change',saveLocal);
 
     // Init
-    loadLocal(); render();
-    window.addEventListener('load',()=>{ if($('proxyUrl').value && $('autoOnLoad').checked){ fetchAll(); } });
+    render();
   </script>
 </body>
 </html>
