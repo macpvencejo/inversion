@@ -1,258 +1,294 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cuadro de Mando de Riesgo — Auto-Fetch (FIX HY bp)</title>
-  <meta name="description" content="Dashboard de indicadores con auto-actualización desde FRED. Convierte HY OAS de % a puntos básicos para los umbrales.">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Cuadro de Mando de Riesgo — Auto-fetch vía Proxy</title>
+  <meta name="description" content="Dashboard de indicadores macro-financieros con semáforo de riesgo. Auto-actualiza desde FRED vía proxy (Cloudflare Worker).">
   <style>
-    :root{--bg:#f6f7fb;--card:#fff;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;--ring:#0ea5e9;}
-    *{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,var(--bg),#eef1f7);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;color:var(--text);}
-    .container{max-width:1100px;margin:0 auto;padding:24px} h1{font-size:28px;margin:0 0 6px 0} h2{font-size:18px;margin:0 0 8px 0}
-    .muted{color:var(--muted)} .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:16px}
-    .grid{display:grid;gap:16px} .g-3{grid-template-columns:repeat(3,minmax(0,1fr))} .g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .row{display:flex;gap:12px;align-items:center} .right{margin-left:auto}
+    :root{
+      --bg:#f6f7fb; --card:#fff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0;
+      --green:#22c55e; --yellow:#f59e0b; --red:#ef4444; --ring:#0ea5e9;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,var(--bg),#eef1f7);
+         font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;color:var(--text)}
+    .container{max-width:1100px;margin:0 auto;padding:24px}
+    h1{font-size:28px;margin:0 0 6px 0} h2{font-size:18px;margin:0 0 8px 0}
+    p{margin:0}.muted{color:var(--muted)}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:16px}
+    .grid{display:grid;gap:16px}.g-3{grid-template-columns:repeat(3,minmax(0,1fr))}.g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .row{display:flex;gap:12px;align-items:center}.right{margin-left:auto}
     .btn{display:inline-flex;gap:8px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer}
-    .btn.primary{background:#0f172a;color:#fff;border-color:#0f172a} .btn:focus{outline:2px solid var(--ring);outline-offset:2px}
+    .btn.primary{background:#0f172a;color:#fff;border-color:#0f172a}.btn:focus{outline:2px solid var(--ring);outline-offset:2px}
     .pill{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
-    .badge{font-size:12px;padding:2px 8px;border-radius:999px;font-weight:600} .badge.green{background:#dcfce7;color:#166534}
-    .badge.yellow{background:#fef9c3;color:#854d0e} .badge.red{background:#fee2e2;color:#991b1b} .light{font-size:12px;color:var(--muted)}
-    .dot{width:12px;height:12px;border-radius:999px;background:#cbd5e1;box-shadow:inset 0 0 0 1px #94a3b8} .dot.green{background:var(--green)} .dot.yellow{background:var(--yellow)} .dot.red{background:var(--red)}
+    .badge{font-size:12px;padding:2px 8px;border-radius:999px;font-weight:600}
+    .badge.green{background:#dcfce7;color:#166534}.badge.yellow{background:#fef9c3;color:#854d0e}.badge.red{background:#fee2e2;color:#991b1b}
+    .light{font-size:12px;color:var(--muted)}
+    .dot{width:12px;height:12px;border-radius:999px;background:#cbd5e1;box-shadow:inset 0 0 0 1px #94a3b8}
+    .dot.green{background:var(--green)}.dot.yellow{background:var(--yellow)}.dot.red{background:var(--red)}
     .value{font-size:22px;font-weight:800;letter-spacing:.2px}
-    .inputs{display:grid;gap:16px;grid-template-columns:repeat(5,minmax(0,1fr))} label{font-size:12px;color:var(--muted)}
+    .inputs{display:grid;gap:16px;grid-template-columns:repeat(5,minmax(0,1fr))}
+    label{font-size:12px;color:var(--muted)}
     input[type=number],input[type=text]{width:100%;margin-top:6px;padding:10px;border:1px solid var(--border);border-radius:12px}
-    input:focus{outline:2px solid var(--ring);outline-offset:2px} .footer{font-size:10px;color:#64748b;margin-top:10px}
+    input:focus{outline:2px solid var(--ring);outline-offset:2px}
     .traffic{width:110px;height:110px;border-radius:999px;box-shadow:inset 0 0 0 4px rgba(255,255,255,.8),0 6px 18px rgba(0,0,0,.08);border:1px solid var(--border);background:#cbd5e1}
-    .traffic.green{background:var(--green)} .traffic.yellow{background:var(--yellow)} .traffic.red{background:var(--red)} .score{font-size:12px;color:var(--muted);margin-top:6px}
-    a{color:#2563eb;text-decoration:none} a:hover{text-decoration:underline} @media (max-width:900px){.g-3{grid-template-columns:1fr}.inputs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .traffic.green{background:var(--green)}.traffic.yellow{background:var(--yellow)}.traffic.red{background:var(--red)}
+    .score{font-size:12px;color:var(--muted);margin-top:6px}
+    a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}
+    @media (max-width:900px){.g-3{grid-template-columns:1fr}.inputs{grid-template-columns:repeat(2,minmax(0,1fr))}}
     .small{font-size:12px}
   </style>
 </head>
 <body>
   <div class="container">
     <div class="row" style="align-items:flex-start">
-      <div><h1>Cuadro de Mando de Riesgo</h1><p class="muted">Auto-actualiza desde FRED. <b>HY OAS</b> se convierte de <b>%</b> a <b>puntos básicos</b>.</p></div>
-      <div class="right row"><button class="btn primary" id="saveBtn">Guardar</button><button class="btn" id="resetBtn">Reset</button></div>
+      <div>
+        <h1>Cuadro de Mando de Riesgo</h1>
+        <p class="muted">Auto-actualiza desde FRED <b>vía proxy</b> (Cloudflare Worker) y calcula DXY con la cesta oficial.</p>
+      </div>
+      <div class="right row">
+        <button class="btn primary" id="saveBtn">Guardar</button>
+        <button class="btn" id="resetBtn">Reset</button>
+      </div>
     </div>
 
+    <!-- Semáforo -->
     <div class="grid g-3" style="align-items:center;margin-top:16px">
       <div class="card" style="grid-column:span 2">
         <h2>Semáforo global</h2>
-        <div class="row"><div id="traffic" class="traffic" title="Semáforo"></div>
-          <div><div id="statusText" class="value">Completa los valores</div><div id="scoreText" class="score"></div><div class="score" id="weightsText"></div></div>
+        <div class="row">
+          <div id="traffic" class="traffic" title="Semáforo"></div>
+          <div>
+            <div id="statusText" class="value">Completa los valores</div>
+            <div id="scoreText" class="score"></div>
+            <div id="weightsText" class="score"></div>
+          </div>
         </div>
       </div>
       <div class="card">
         <h2>Notas</h2>
         <ul class="light" style="margin-top:8px;line-height:1.5">
-          <li>El <b>BofA Bull &amp; Bear</b> es <i>contrarian</i>: valores bajos suelen ser alcistas.</li>
+          <li>El <b>BofA Bull &amp; Bear</b> es <i>contrarian</i> (valores bajos suelen ser alcistas).</li>
           <li>Liquidez: usamos Δ % del balance neto <b>(WALCL − RRP)</b> semanal.</li>
           <li>Activa “Auto al abrir” para cargar automáticamente.</li>
         </ul>
       </div>
     </div>
 
+    <!-- Indicadores -->
     <div class="grid g-3" style="margin-top:16px">
-      <div class="card"><div class="row"><h2>Spreads High Yield (OAS, <span class="small">puntos básicos</span>)</h2><span id="hyBadge" class="badge">—</span></div>
+      <div class="card">
+        <div class="row"><h2>Spreads High Yield (OAS, puntos básicos)</h2><span id="hyBadge" class="badge">—</span></div>
         <div class="row" style="margin-top:6px"><div id="hyDot" class="dot"></div><div class="value" id="hyVal">—</div></div>
         <p class="light" style="margin-top:8px">&lt; 400 pb verde · 400–600 ámbar · &gt; 600 rojo</p>
-        <p class="light" style="margin-top:6px"><a href="https://fred.stlouisfed.org/series/BAMLH0A0HYM2" target="_blank" rel="noreferrer">FRED – BAMLH0A0HYM2</a></p>
       </div>
 
-      <div class="card"><div class="row"><h2>Curva USA (10y − 2y, %)</h2><span id="curveBadge" class="badge">—</span></div>
+      <div class="card">
+        <div class="row"><h2>Curva USA (10y − 2y, %)</h2><span id="curveBadge" class="badge">—</span></div>
         <div class="row" style="margin-top:6px"><div id="curveDot" class="dot"></div><div class="value" id="curveVal">—</div></div>
         <p class="light" style="margin-top:8px">&gt; 0 verde · 0 a −0.20 ámbar · &lt; −0.20 rojo</p>
-        <p class="light" style="margin-top:6px"><a href="https://fred.stlouisfed.org/series/T10Y2Y" target="_blank" rel="noreferrer">FRED – T10Y2Y</a></p>
       </div>
 
-      <div class="card"><div class="row"><h2>Índice Dólar (DXY)</h2><span id="dxyBadge" class="badge">—</span></div>
+      <div class="card">
+        <div class="row"><h2>Índice Dólar (DXY)</h2><span id="dxyBadge" class="badge">—</span></div>
         <div class="row" style="margin-top:6px"><div id="dxyDot" class="dot"></div><div class="value" id="dxyVal">—</div></div>
-        <p class="light" style="margin-top:8px">Calculado de EURUSD, USDJPY, GBPUSD, USDCAD, USDSEK, USDCHF.</p>
-        <p class="light" style="margin-top:6px"><span class="small">Series FRED: DEXUSEU, DEXJPUS, DEXUSUK, DEXCAUS, DEXSDUS, DEXSZUS</span></p>
+        <p class="light" style="margin-top:8px">Calculado de EURUSD, USDJPY, GBPUSD, USDCAD, USDSEK y USDCHF.</p>
       </div>
 
-      <div class="card"><div class="row"><h2>Liquidez neta (Δ % WALCL − RRP)</h2><span id="liqBadge" class="badge">—</span></div>
+      <div class="card">
+        <div class="row"><h2>Liquidez neta (Δ % WALCL − RRP)</h2><span id="liqBadge" class="badge">—</span></div>
         <div class="row" style="margin-top:6px"><div id="liqDot" class="dot"></div><div class="value" id="liqVal">—</div></div>
         <p class="light" style="margin-top:8px">&gt; 0.20% verde · 0–0.20% ámbar · &lt; 0% rojo</p>
-        <p class="light" style="margin-top:6px">Fuentes: <a href="https://www.federalreserve.gov/releases/h41/" target="_blank" rel="noreferrer">Fed H.4.1</a> &amp; <a href="https://fred.stlouisfed.org/series/RRPONTSYD" target="_blank" rel="noreferrer">FRED – RRP</a></p>
       </div>
 
-      <div class="card"><div class="row"><h2>BofA Bull &amp; Bear (0–10)</h2><span id="bofaBadge" class="badge">—</span></div>
+      <div class="card">
+        <div class="row"><h2>BofA Bull &amp; Bear (0–10)</h2><span id="bofaBadge" class="badge">—</span></div>
         <div class="row" style="margin-top:6px"><div id="bofaDot" class="dot"></div><div class="value" id="bofaVal">—</div></div>
         <p class="light" style="margin-top:8px">&lt; 2 verde (miedo extremo) · 2–8 ámbar · &gt; 8 rojo (euforia)</p>
-        <p class="light" style="margin-top:6px"><a href="https://www.cnbc.com/" target="_blank" rel="noreferrer">Resúmenes de prensa</a></p>
       </div>
     </div>
 
+    <!-- Auto-fetch vía proxy -->
     <div class="card" style="margin-top:16px">
-      <h2>Auto‑fetch (FRED)</h2>
+      <h2>Auto-fetch (FRED, vía proxy)</h2>
       <div class="row" style="gap:8px;margin-top:8px">
-        <input type="text" id="fredKey" placeholder="Tu FRED API key" style="flex:1">
+        <input type="text" id="proxyUrl" placeholder="https://TU-WORKER.workers.dev" style="flex:1">
         <label class="small"><input type="checkbox" id="autoOnLoad"> Auto al abrir</label>
-        <button class="btn" id="saveKey">Guardar key</button>
+        <button class="btn" id="saveKey">Guardar ajustes</button>
         <button class="btn" id="fetchBtn">Actualizar ahora</button>
         <span id="fetchStatus" class="light"></span>
       </div>
+      <div class="light" style="margin-top:6px">No pegues tu API key aquí; está segura como <b>FRED_KEY</b> en el Worker.</div>
       <div id="lastDates" class="light" style="margin-top:8px"></div>
     </div>
 
-    <div class="footer" style="margin-top:16px">*Herramienta educativa. © 2025</div>
+    <!-- Ajustes -->
+    <div class="card" style="margin-top:16px">
+      <h2>Ajustes</h2>
+      <div class="grid g-2" style="margin-top:8px">
+        <div>
+          <p class="pill">Pesos</p>
+          <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px">
+            <div><label>HY</label><input type="number" step="0.05" id="w-hy" value="0.3"></div>
+            <div><label>Curva</label><input type="number" step="0.05" id="w-curve" value="0.2"></div>
+            <div><label>DXY</label><input type="number" step="0.05" id="w-dxy" value="0.2"></div>
+            <div><label>Liquidez</label><input type="number" step="0.05" id="w-liq" value="0.2"></div>
+            <div><label>BofA</label><input type="number" step="0.05" id="w-bofa" value="0.1"></div>
+          </div>
+        </div>
+        <div>
+          <p class="pill">Umbrales</p>
+          <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px">
+            <div style="grid-column:span 2"><b>High Yield (pb)</b></div>
+            <div><label>Verde &lt;</label><input type="number" id="t-hy-green" value="400"></div>
+            <div><label>Ámbar &lt;</label><input type="number" id="t-hy-yellow" value="600"></div>
+            <div style="grid-column:span 2;margin-top:6px"><b>Curva (%, 10y−2y)</b></div>
+            <div><label>Verde &gt;</label><input type="number" step="0.01" id="t-curve-green" value="0"></div>
+            <div><label>Ámbar &gt;</label><input type="number" step="0.01" id="t-curve-yellow" value="-0.2"></div>
+            <div style="grid-column:span 2;margin-top:6px"><b>DXY</b></div>
+            <div><label>Verde &lt;</label><input type="number" step="0.01" id="t-dxy-green" value="100"></div>
+            <div><label>Ámbar &lt;</label><input type="number" step="0.01" id="t-dxy-yellow" value="105"></div>
+            <div style="grid-column:span 2;margin-top:6px"><b>Liquidez (Δ %)</b></div>
+            <div><label>Verde &gt;</label><input type="number" step="0.01" id="t-liq-green" value="0.2"></div>
+            <div><label>Ámbar &gt;</label><input type="number" step="0.01" id="t-liq-yellow" value="0"></div>
+            <div style="grid-column:span 2;margin-top:6px"><b>BofA Bull &amp; Bear</b></div>
+            <div><label>Verde &lt;</label><input type="number" step="0.1" id="t-bofa-green" value="2"></div>
+            <div><label>Ámbar &lt;</label><input type="number" step="0.1" id="t-bofa-yellow" value="8"></div>
+          </div>
+        </div>
+      </div>
+      <div class="light" style="margin-top:8px">0=verde, 1=ámbar, 2=rojo. Corte global: &lt;0.70 verde · 0.70–1.30 ámbar · &gt;=1.30 rojo.</div>
+    </div>
+
+    <div class="light" style="margin-top:16px">*Herramienta educativa. © 2025</div>
   </div>
 
   <script>
-    const $ = (id)=>document.getElementById(id);
+    const $ = id => document.getElementById(id);
 
     const state = {
       hy_pb:null, curve:null, dxy:null, liq:null, bofa:null,
       w:{hy:0.3, curve:0.2, dxy:0.2, liq:0.2, bofa:0.1},
-      t:{ hy:{green:400,yellow:600}, curve:{green:0.0,yellow:-0.2},
-          dxy:{green:100,yellow:105}, liq:{green:0.2,yellow:0.0}, bofa:{green:2.0,yellow:8.0} }
+      t:{hy:{green:400,yellow:600}, curve:{green:0.0,yellow:-0.2},
+         dxy:{green:100,yellow:105}, liq:{green:0.2,yellow:0.0}, bofa:{green:2.0,yellow:8.0}}
     };
 
-    function saveLocal(){ localStorage.setItem('geo-risk-dashboard-v4', JSON.stringify({
-      state, fredKey: $('fredKey').value, auto: $('autoOnLoad').checked
-    })); }
-
+    function saveLocal(){ localStorage.setItem('geo-risk-dashboard-proxy',
+      JSON.stringify({state, proxyUrl:$('proxyUrl').value, auto:$('autoOnLoad').checked})); }
     function loadLocal(){
-      try{
-        const raw = localStorage.getItem('geo-risk-dashboard-v4'); if(!raw) return;
-        const obj = JSON.parse(raw);
-        if(obj.state){ Object.assign(state, obj.state); }
-        if(obj.fredKey){ $('fredKey').value = obj.fredKey; }
-        if(obj.auto){ $('autoOnLoad').checked = true; }
+      try{ const raw=localStorage.getItem('geo-risk-dashboard-proxy'); if(!raw) return;
+        const obj=JSON.parse(raw); if(obj.state) Object.assign(state,obj.state);
+        if(obj.proxyUrl) $('proxyUrl').value=obj.proxyUrl; if(obj.auto) $('autoOnLoad').checked=true;
       }catch(e){}
     }
 
     const lvlFns = {
-      hy: v => v < state.t.hy.green ? 'green' : (v < state.t.hy.yellow ? 'yellow' : 'red'),
-      curve: v => v > state.t.curve.green ? 'green' : (v > state.t.curve.yellow ? 'yellow' : 'red'),
-      dxy: v => v < state.t.dxy.green ? 'green' : (v < state.t.dxy.yellow ? 'yellow' : 'red'),
-      liq: v => v > state.t.liq.green ? 'green' : (v > state.t.liq.yellow ? 'yellow' : 'red'),
-      bofa: v => v < state.t.bofa.green ? 'green' : (v < state.t.bofa.yellow ? 'yellow' : 'red'),
+      hy:v=>v<state.t.hy.green?'green':(v<state.t.hy.yellow?'yellow':'red'),
+      curve:v=>v>state.t.curve.green?'green':(v>state.t.curve.yellow?'yellow':'red'),
+      dxy:v=>v<state.t.dxy.green?'green':(v<state.t.dxy.yellow?'yellow':'red'),
+      liq:v=>v>state.t.liq.green?'green':(v>state.t.liq.yellow?'yellow':'red'),
+      bofa:v=>v<state.t.bofa.green?'green':(v<state.t.bofa.yellow?'yellow':'red'),
     };
-    function badge(el, lvl){ el.className='badge '+(lvl||''); el.textContent = lvl? (lvl==='green'?'favorable':(lvl==='yellow'?'neutral':'tensión')):'—'; }
-    function dot(el, lvl){ el.className='dot '+(lvl||''); }
-    function fmt(v, decimals=2){ return (v==null||Number.isNaN(v))?'—': Number(v).toFixed(decimals); }
-    function toScore(l){ return l==='green'?0 : (l==='yellow'?1:2); }
+    function badge(el,lvl){ el.className='badge '+(lvl||''); el.textContent=lvl?(lvl==='green'?'favorable':(lvl==='yellow'?'neutral':'tensión')):'—'; }
+    function dot(el,lvl){ el.className='dot '+(lvl||''); }
+    function fmt(v,d=2){ return (v==null||Number.isNaN(v))?'—':Number(v).toFixed(d); }
+    const toScore = l => l==='green'?0:(l==='yellow'?1:2);
 
     function render(){
-      const hyLvl = state.hy_pb==null? null : lvlFns.hy(state.hy_pb);
-      const cvLvl = state.curve==null? null : lvlFns.curve(state.curve);
-      const dxLvl = state.dxy==null? null : lvlFns.dxy(state.dxy);
-      const lqLvl = state.liq==null? null : lvlFns.liq(state.liq);
-      const bbLvl = state.bofa==null? null : lvlFns.bofa(state.bofa);
+      const hyLvl  = state.hy_pb==null?null:lvlFns.hy(state.hy_pb);
+      const cvLvl  = state.curve==null?null:lvlFns.curve(state.curve);
+      const dxLvl  = state.dxy==null?null:lvlFns.dxy(state.dxy);
+      const lqLvl  = state.liq==null?null:lvlFns.liq(state.liq);
+      const bbLvl  = state.bofa==null?null:lvlFns.bofa(state.bofa);
 
-      $('hyVal').textContent = fmt(state.hy_pb,0) + (state.hy_pb==null?'':' pb'); badge($('hyBadge'), hyLvl); dot($('hyDot'), hyLvl);
-      $('curveVal').textContent = fmt(state.curve,2) + (state.curve==null?'':' %'); badge($('curveBadge'), cvLvl); dot($('curveDot'), cvLvl);
-      $('dxyVal').textContent = fmt(state.dxy,2); badge($('dxyBadge'), dxLvl); dot($('dxyDot'), dxLvl);
-      $('liqVal').textContent = fmt(state.liq,2) + (state.liq==null?'':' %'); badge($('liqBadge'), lqLvl); dot($('liqDot'), lqLvl);
-      $('bofaVal').textContent = state.bofa==null?'—':Number(state.bofa).toFixed(1); badge($('bofaBadge'), bbLvl); dot($('bofaDot'), bbLvl);
+      $('hyVal').textContent = fmt(state.hy_pb,0)+(state.hy_pb==null?'':' pb'); badge($('hyBadge'),hyLvl); dot($('hyDot'),hyLvl);
+      $('curveVal').textContent = fmt(state.curve,2)+(state.curve==null?'':' %');  badge($('curveBadge'),cvLvl); dot($('curveDot'),cvLvl);
+      $('dxyVal').textContent = fmt(state.dxy,2);                                      badge($('dxyBadge'),dxLvl); dot($('dxyDot'),dxLvl);
+      $('liqVal').textContent = fmt(state.liq,2)+(state.liq==null?'':' %');        badge($('liqBadge'),lqLvl); dot($('liqDot'),lqLvl);
+      $('bofaVal').textContent = state.bofa==null?'—':Number(state.bofa).toFixed(1);    badge($('bofaBadge'),bbLvl); dot($('bofaDot'),bbLvl);
 
-      const parts = []; let wsum = 0;
-      if(hyLvl){ parts.push([toScore(hyLvl), state.w.hy]); wsum+=state.w.hy; }
-      if(cvLvl){ parts.push([toScore(cvLvl), state.w.curve]); wsum+=state.w.curve; }
-      if(dxLvl){ parts.push([toScore(dxLvl), state.w.dxy]); wsum+=state.w.dxy; }
-      if(lqLvl){ parts.push([toScore(lqLvl), state.w.liq]); wsum+=state.w.liq; }
-      if(bbLvl){ parts.push([toScore(bbLvl), state.w.bofa]); wsum+=state.w.bofa; }
+      const parts=[]; let wsum=0;
+      if(hyLvl){parts.push([toScore(hyLvl),state.w.hy]);wsum+=state.w.hy}
+      if(cvLvl){parts.push([toScore(cvLvl),state.w.curve]);wsum+=state.w.curve}
+      if(dxLvl){parts.push([toScore(dxLvl),state.w.dxy]);wsum+=state.w.dxy}
+      if(lqLvl){parts.push([toScore(lqLvl),state.w.liq]);wsum+=state.w.liq}
+      if(bbLvl){parts.push([toScore(bbLvl),state.w.bofa]);wsum+=state.w.bofa}
 
-      const traffic = $('traffic'), status=$('statusText'), scoreText=$('scoreText'), weightsText=$('weightsText');
-      if(parts.length===0 || wsum===0){ traffic.className='traffic'; status.textContent='Completa los valores'; scoreText.textContent=''; weightsText.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa; return; }
-      const score = parts.reduce((s,[v,w])=>s+v*w,0) / wsum;
-      const lvl = score < 0.70 ? 'green' : (score >= 1.30 ? 'red' : 'yellow');
-      traffic.className='traffic '+lvl; status.textContent=(lvl==='green'?'Riesgo‑ON':(lvl==='yellow'?'Neutro / Precaución':'Riesgo‑OFF'));
-      scoreText.textContent='Score ponderado: '+score.toFixed(2)+' (0=verde, 1=ámbar, 2=rojo)';
-      weightsText.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa;
+      const t=$('traffic'), s=$('statusText'), st=$('scoreText'), wt=$('weightsText');
+      if(parts.length===0||wsum===0){ t.className='traffic'; s.textContent='Completa los valores';
+        st.textContent=''; wt.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa; return;}
+      const score = parts.reduce((x,[v,w])=>x+v*w,0)/wsum;
+      const lvl = score<0.70?'green':(score>=1.30?'red':'yellow');
+      t.className='traffic '+lvl; s.textContent=(lvl==='green'?'Riesgo-ON':(lvl==='yellow'?'Neutro / Precaución':'Riesgo-OFF'));
+      st.textContent='Score ponderado: '+score.toFixed(2)+' (0=verde,1=ámbar,2=rojo)';
+      wt.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa;
     }
 
-    // Manual (si alguien quiere)
-    $('in-hy')?.addEventListener('input', e=>{ state.hy_pb = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
-    $('in-curve')?.addEventListener('input', e=>{ state.curve = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
-    $('in-dxy')?.addEventListener('input', e=>{ state.dxy = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
-    $('in-liq')?.addEventListener('input', e=>{ state.liq = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
-    $('in-bofa')?.addEventListener('input', e=>{ state.bofa = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
-
-    ['w-hy','w-curve','w-dxy','w-liq','w-bofa'].forEach(id=>{
-      const el=$(id); if(!el) return; el.addEventListener('input', e=>{ const k=id.split('-')[1]; state.w[k]=Number(e.target.value); render(); saveLocal(); });
-    });
-
-    // FRED helpers
-    async function fredSeriesLast(key, seriesId, start='2020-01-01'){
-      const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json&observation_start=${start}`;
-      const r = await fetch(url); if(!r.ok) throw new Error('FRED '+seriesId+' '+r.status);
-      const j = await r.json(); const obs = (j.observations||[]).filter(o=>o.value!=='.');
-      if(!obs.length) throw new Error('Sin datos '+seriesId);
-      return obs[obs.length-1];
+    // ---- FRED vía proxy ----
+    async function proxyFetch(seriesId,start='2020-01-01'){
+      const base=$('proxyUrl').value.trim(); if(!base) throw new Error('Configura tu Proxy URL');
+      const url=base.replace(/\/$/,'')+`?series_id=${encodeURIComponent(seriesId)}&start=${encodeURIComponent(start)}`;
+      const r=await fetch(url); if(!r.ok) throw new Error('Proxy error '+r.status); return r.json();
     }
-    async function fredSeriesFirstFrom(key, seriesId, daysBack){
-      const start = new Date(Date.now() - daysBack*86400000).toISOString().slice(0,10);
-      const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json&observation_start=${start}`;
-      const r = await fetch(url); const j = await r.json();
-      const obs = (j.observations||[]).filter(o=>o.value!=='.'); return obs.length? obs[0]:null;
+    const lastObs = j => { const o=(j.observations||[]).filter(x=>x.value!=='.'); if(!o.length) throw new Error('Sin datos'); return o[o.length-1]; };
+    const firstObs = j => { const o=(j.observations||[]).filter(x=>x.value!=='.'); return o.length?o[0]:null; };
+
+    function dxyCalc(EURUSD,USDJPY,GBPUSD,USDCAD,USDSEK,USDCHF){
+      const k=50.14348112;
+      return k*Math.pow(EURUSD,-0.576)*Math.pow(USDJPY,0.136)*Math.pow(GBPUSD,-0.119)*
+             Math.pow(USDCAD,0.091)*Math.pow(USDSEK,0.042)*Math.pow(USDCHF,0.036);
     }
 
-    function computeDXY(EURUSD, USDJPY, GBPUSD, USDCAD, USDSEK, USDCHF){
-      const k = 50.14348112;
-      return k * Math.pow(EURUSD, -0.576) * Math.pow(USDJPY, 0.136) * Math.pow(GBPUSD, -0.119)
-               * Math.pow(USDCAD, 0.091) * Math.pow(USDSEK, 0.042) * Math.pow(USDCHF, 0.036);
-    }
-
-    async function fetchFromFred(){
-      const key = $('fredKey').value.trim();
-      if(!key){ alert('Introduce tu FRED API key.'); return; }
-      $('fetchStatus').textContent = 'Consultando FRED…';
+    async function fetchAll(){
+      $('fetchStatus').textContent='Consultando…';
       try{
-        const [hy, curve, walcl, rrp] = await Promise.all([
-          fredSeriesLast(key,'BAMLH0A0HYM2'),
-          fredSeriesLast(key,'T10Y2Y'),
-          fredSeriesLast(key,'WALCL'),
-          fredSeriesLast(key,'RRPONTSYD')
+        const [hyJ,curveJ,walclJ,rrpJ] = await Promise.all([
+          proxyFetch('BAMLH0A0HYM2'), proxyFetch('T10Y2Y'),
+          proxyFetch('WALCL'), proxyFetch('RRPONTSYD')
         ]);
-        const walclPrev = await fredSeriesFirstFrom(key,'WALCL',14);
-        const rrpPrev = await fredSeriesFirstFrom(key,'RRPONTSYD',14);
-
-        // HY: FRED devuelve en %, convertimos a puntos básicos
-        const hy_pct = Number(hy.value);
-        state.hy_pb = Math.round(hy_pct * 100); // % -> pb
-
+        const hy=lastObs(hyJ), curve=lastObs(curveJ), walcl=lastObs(walclJ), rrp=lastObs(rrpJ);
+        // HY en % -> puntos básicos
+        state.hy_pb = Math.round(Number(hy.value)*100);
         state.curve = Number(curve.value);
 
+        const startPrev=new Date(Date.now()-14*86400000).toISOString().slice(0,10);
+        const [walclPrevJ, rrpPrevJ] = await Promise.all([proxyFetch('WALCL',startPrev), proxyFetch('RRPONTSYD',startPrev)]);
+        const walclPrev=firstObs(walclPrevJ), rrpPrev=firstObs(rrpPrevJ);
         if(walclPrev && rrpPrev){
           const netNow = Number(walcl.value)*1e6 - Number(rrp.value)*1e6;
-          const netPrev = Number(walclPrev.value)*1e6 - Number(rrpPrev.value)*1e6;
-          state.liq = +(((netNow - netPrev)/netPrev)*100).toFixed(3);
+          const netPrev= Number(walclPrev.value)*1e6 - Number(rrpPrev.value)*1e6;
+          state.liq = +(((netNow-netPrev)/netPrev)*100).toFixed(3);
         }
-        $('lastDates').textContent = `HY ${hy.date} · Curva ${curve.date} · WALCL ${walcl.date} · RRP ${rrp.date}`;
+        $('lastDates').textContent=`HY ${hy.date} · Curva ${curve.date} · WALCL ${walcl.date} · RRP ${rrp.date}`;
 
-        // DXY via cesta FX
-        const [eurusd, usdjpy, gbpusd, usdcad, usdsek, usdchf] = await Promise.all([
-          fredSeriesLast(key,'DEXUSEU'), // USD per EUR (EURUSD)
-          fredSeriesLast(key,'DEXJPUS'), // JPY per USD (USDJPY)
-          fredSeriesLast(key,'DEXUSUK'), // USD per GBP (GBPUSD)
-          fredSeriesLast(key,'DEXCAUS'), // CAD per USD (USDCAD)
-          fredSeriesLast(key,'DEXSDUS'), // SEK per USD (USDSEK)
-          fredSeriesLast(key,'DEXSZUS')  // CHF per USD (USDCHF)
+        // DXY desde cesta FX (series FRED diarias)
+        const [eurusdJ,usdjpyJ,gbpusdJ,usdcadJ,usdsekJ,usdchfJ] = await Promise.all([
+          proxyFetch('DEXUSEU'), proxyFetch('DEXJPUS'), proxyFetch('DEXUSUK'),
+          proxyFetch('DEXCAUS'), proxyFetch('DEXSDUS'), proxyFetch('DEXSZUS')
         ]);
-        state.dxy = +computeDXY(Number(eurusd.value), Number(usdjpy.value), Number(gbpusd.value),
-                                Number(usdcad.value), Number(usdsek.value), Number(usdchf.value)).toFixed(2);
+        const eurusd=lastObs(eurusdJ), usdjpy=lastObs(usdjpyJ), gbpusd=lastObs(gbpusdJ),
+              usdcad=lastObs(usdcadJ), usdsek=lastObs(usdsekJ), usdchf=lastObs(usdchfJ);
+        state.dxy = +dxyCalc(+eurusd.value,+usdjpy.value,+gbpusd.value,+usdcad.value,+usdsek.value,+usdchf.value).toFixed(2);
         $('lastDates').textContent += ` · FX ${eurusd.date}`;
 
         render(); saveLocal();
-        $('fetchStatus').textContent = 'Actualizado.';
+        $('fetchStatus').textContent='OK';
       }catch(e){
-        $('fetchStatus').textContent = 'Error: '+e.message;
+        $('fetchStatus').textContent='Error: '+e.message;
       }
     }
 
-    $('saveBtn').addEventListener('click', ()=>{ saveLocal(); alert('Guardado en este navegador.'); });
-    $('resetBtn').addEventListener('click', ()=>{ localStorage.removeItem('geo-risk-dashboard-v4'); location.reload(); });
-    $('saveKey').addEventListener('click', ()=>{ saveLocal(); alert('Key guardada.'); });
-    $('fetchBtn').addEventListener('click', ()=>fetchFromFred());
-    $('autoOnLoad').addEventListener('change', saveLocal);
+    // Controles
+    $('saveBtn').addEventListener('click',()=>{ saveLocal(); alert('Guardado.'); });
+    $('resetBtn').addEventListener('click',()=>{ localStorage.removeItem('geo-risk-dashboard-proxy'); location.reload(); });
+    $('saveKey').addEventListener('click',()=>{ saveLocal(); alert('Ajustes guardados.'); });
+    $('fetchBtn').addEventListener('click',fetchAll);
+    $('autoOnLoad').addEventListener('change',saveLocal);
 
     // Init
-    loadLocal();
-    render();
-    window.addEventListener('load', ()=>{ if($('fredKey').value && $('autoOnLoad').checked){ fetchFromFred(); } });
+    loadLocal(); render();
+    window.addEventListener('load',()=>{ if($('proxyUrl').value && $('autoOnLoad').checked){ fetchAll(); } });
   </script>
 </body>
 </html>
