@@ -3,47 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cuadro de Mando de Riesgo — Semáforo ON/OFF</title>
-  <meta name="description" content="Dashboard de indicadores macro-financieros con semáforo de riesgo: High Yield OAS, curva 10y−2y, DXY, liquidez (Fed−RRP) y BofA Bull &amp; Bear.">
+  <title>Cuadro de Mando de Riesgo — Auto-Fetch</title>
+  <meta name="description" content="Dashboard de indicadores macro-financieros con semáforo de riesgo. Auto-actualiza desde FRED: HY OAS, Curva 10y−2y, Liquidez (WALCL−RRP) y calcula DXY con EUR, JPY, GBP, CAD, SEK, CHF.">
   <style>
     :root{
-      --bg: #f6f7fb;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted:#64748b;
-      --border:#e2e8f0;
-      --green:#22c55e;
-      --yellow:#f59e0b;
-      --red:#ef4444;
-      --ring:#0ea5e9;
+      --bg: #f6f7fb; --card: #ffffff; --text: #0f172a; --muted:#64748b; --border:#e2e8f0;
+      --green:#22c55e; --yellow:#f59e0b; --red:#ef4444; --ring:#0ea5e9;
     }
     *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,var(--bg),#eef1f7);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;color:var(--text);}
+    body{margin:0;background:linear-gradient(180deg,var(--bg),#eef1f7);
+         font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;color:var(--text);}
     .container{max-width:1100px;margin:0 auto;padding:24px}
     h1{font-size:28px;margin:0 0 6px 0}
     h2{font-size:18px;margin:0 0 8px 0}
-    p{margin:0}
-    .muted{color:var(--muted)}
+    p{margin:0}.muted{color:var(--muted)}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.04);padding:16px}
     .grid{display:grid;gap:16px}
-    .g-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-    .g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .row{display:flex;gap:12px;align-items:center}
-    .right{margin-left:auto}
+    .g-3{grid-template-columns:repeat(3,minmax(0,1fr))}.g-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .row{display:flex;gap:12px;align-items:center}.right{margin-left:auto}
     .btn{display:inline-flex;gap:8px;align-items:center;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer}
-    .btn.primary{background:#0f172a;color:#fff;border-color:#0f172a}
-    .btn:focus{outline:2px solid var(--ring);outline-offset:2px}
+    .btn.primary{background:#0f172a;color:#fff;border-color:#0f172a}.btn:focus{outline:2px solid var(--ring);outline-offset:2px}
     .pill{font-size:12px;padding:2px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
     .badge{font-size:12px;padding:2px 8px;border-radius:999px;font-weight:600}
-    .badge.green{background:#dcfce7;color:#166534}
-    .badge.yellow{background:#fef9c3;color:#854d0e}
-    .badge.red{background:#fee2e2;color:#991b1b}
+    .badge.green{background:#dcfce7;color:#166534}.badge.yellow{background:#fef9c3;color:#854d0e}.badge.red{background:#fee2e2;color:#991b1b}
     .light{font-size:12px;color:var(--muted)}
-    .kv{display:flex;gap:10px;align-items:center}
-    .kv .dot{width:12px;height:12px;border-radius:999px;background:#cbd5e1;box-shadow:inset 0 0 0 1px #94a3b8}
-    .dot.green{background:var(--green)}
-    .dot.yellow{background:var(--yellow)}
-    .dot.red{background:var(--red)}
+    .dot{width:12px;height:12px;border-radius:999px;background:#cbd5e1;box-shadow:inset 0 0 0 1px #94a3b8}
+    .dot.green{background:var(--green)}.dot.yellow{background:var(--yellow)}.dot.red{background:var(--red)}
     .value{font-size:22px;font-weight:800;letter-spacing:.2px}
     .inputs{display:grid;gap:16px;grid-template-columns:repeat(5,minmax(0,1fr))}
     label{font-size:12px;color:var(--muted)}
@@ -51,16 +36,11 @@
     input:focus{outline:2px solid var(--ring);outline-offset:2px}
     .footer{font-size:10px;color:#64748b;margin-top:10px}
     .traffic{width:110px;height:110px;border-radius:999px;box-shadow:inset 0 0 0 4px rgba(255,255,255,.8), 0 6px 18px rgba(0,0,0,.08);border:1px solid var(--border);background:#cbd5e1}
-    .traffic.green{background:var(--green)}
-    .traffic.yellow{background:var(--yellow)}
-    .traffic.red{background:var(--red)}
+    .traffic.green{background:var(--green)}.traffic.yellow{background:var(--yellow)}.traffic.red{background:var(--red)}
     .score{font-size:12px;color:var(--muted);margin-top:6px}
-    a{color:#2563eb;text-decoration:none}
-    a:hover{text-decoration:underline}
-    @media (max-width: 900px){
-      .g-3{grid-template-columns:1fr}
-      .inputs{grid-template-columns:repeat(2,minmax(0,1fr))}
-    }
+    a{color:#2563eb;text-decoration:none} a:hover{text-decoration:underline}
+    @media (max-width: 900px){.g-3{grid-template-columns:1fr}.inputs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    .small{font-size:12px}
   </style>
 </head>
 <body>
@@ -68,7 +48,7 @@
     <div class="row" style="align-items:flex-start">
       <div>
         <h1>Cuadro de Mando de Riesgo</h1>
-        <p class="muted">Indicadores macro-financieros con semáforo global (actualiza valores manualmente o vía FRED).</p>
+        <p class="muted">Auto-actualiza desde FRED (si guardas tu API key). Calcula DXY con EUR, JPY, GBP, CAD, SEK y CHF.</p>
       </div>
       <div class="right row">
         <button class="btn primary" id="saveBtn">Guardar</button>
@@ -91,9 +71,9 @@
       <div class="card">
         <h2>Notas</h2>
         <ul class="light" style="margin-top:8px;line-height:1.5">
-          <li>El <b>BofA Bull &amp; Bear</b> es <i>contrarian</i>: valores bajos suelen ser alcistas (miedo extremo).</li>
-          <li>Liquidez: usa variación % del balance neto <b>(WALCL − RRP)</b> semanal.</li>
-          <li>Umbrales y pesos son editables en Ajustes.</li>
+          <li>El <b>BofA Bull &amp; Bear</b> es <i>contrarian</i>: valores bajos suelen ser alcistas.</li>
+          <li>Liquidez: usamos Δ % del balance neto <b>(WALCL − RRP)</b> semanal.</li>
+          <li>Activa “Auto al abrir” para traer datos automáticamente.</li>
         </ul>
       </div>
     </div>
@@ -109,7 +89,7 @@
           <div class="value" id="hyVal">—</div>
         </div>
         <p class="light" style="margin-top:8px">&lt; 400 pb verde · 400–600 ámbar · &gt; 600 rojo</p>
-        <p class="light" style="margin-top:6px"><a href="https://fred.stlouisfed.org/series/BAMLH0A0HYM2" target="_blank" rel="noreferrer">Fuente: FRED – BAMLH0A0HYM2</a></p>
+        <p class="light" style="margin-top:6px"><a href="https://fred.stlouisfed.org/series/BAMLH0A0HYM2" target="_blank" rel="noreferrer">FRED – BAMLH0A0HYM2</a></p>
       </div>
 
       <div class="card" id="card-curve">
@@ -122,7 +102,7 @@
           <div class="value" id="curveVal">—</div>
         </div>
         <p class="light" style="margin-top:8px">&gt; 0 verde · 0 a −0.20 ámbar · &lt; −0.20 rojo</p>
-        <p class="light" style="margin-top:6px"><a href="https://fred.stlouisfed.org/series/T10Y2Y" target="_blank" rel="noreferrer">Fuente: FRED – T10Y2Y</a></p>
+        <p class="light" style="margin-top:6px"><a href="https://fred.stlouisfed.org/series/T10Y2Y" target="_blank" rel="noreferrer">FRED – T10Y2Y</a></p>
       </div>
 
       <div class="card" id="card-dxy">
@@ -134,8 +114,8 @@
           <div id="dxyDot" class="dot"></div>
           <div class="value" id="dxyVal">—</div>
         </div>
-        <p class="light" style="margin-top:8px">&lt; 100 verde · 100–105 ámbar · &gt; 105 rojo (aprox.)</p>
-        <p class="light" style="margin-top:6px"><a href="https://www.tradingview.com/symbols/TVC-DXY/" target="_blank" rel="noreferrer">Fuente: TradingView – DXY</a></p>
+        <p class="light" style="margin-top:8px">Calculado a partir de EURUSD, USDJPY, GBPUSD, USDCAD, USDSEK, USDCHF (ICE DXY).</p>
+        <p class="light" style="margin-top:6px"><span class="small">Series FRED: DEXUSEU, DEXJPUS, DEXUSUK, DEXCAUS, DEXSDUS, DEXSZUS</span></p>
       </div>
 
       <div class="card" id="card-liq">
@@ -161,33 +141,31 @@
           <div class="value" id="bofaVal">—</div>
         </div>
         <p class="light" style="margin-top:8px">&lt; 2 verde (miedo extremo) · 2–8 ámbar · &gt; 8 rojo (euforia)</p>
-        <p class="light" style="margin-top:6px"><a href="https://www.cnbc.com/" target="_blank" rel="noreferrer">Resúmenes de prensa</a> (dato completo bajo suscripción)</p>
+        <p class="light" style="margin-top:6px"><a href="https://www.cnbc.com/" target="_blank" rel="noreferrer">Resúmenes de prensa</a></p>
       </div>
     </div>
 
     <div class="card" style="margin-top:16px">
-      <h2>Actualizar valores</h2>
+      <h2>Auto‑fetch (FRED)</h2>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <input type="text" id="fredKey" placeholder="Tu FRED API key" style="flex:1">
+        <label class="small"><input type="checkbox" id="autoOnLoad"> Auto al abrir</label>
+        <button class="btn" id="saveKey">Guardar key</button>
+        <button class="btn" id="fetchBtn">Actualizar ahora</button>
+        <span id="fetchStatus" class="light"></span>
+      </div>
+      <div id="lastDates" class="light" style="margin-top:8px"></div>
+      <p class="light" style="margin-top:6px">Consigue tu API key gratis en FRED (St. Louis Fed) y pégala aquí. Guardamos la key solo en tu navegador.</p>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h2>Actualizar valores (manual)</h2>
       <div class="inputs" style="margin-top:10px">
-        <div>
-          <label>HY OAS (pb)</label>
-          <input type="number" id="in-hy" placeholder="p.ej., 380">
-        </div>
-        <div>
-          <label>Curva 10y−2y (%)</label>
-          <input type="number" step="0.01" id="in-curve" placeholder="p.ej., 0.50">
-        </div>
-        <div>
-          <label>DXY</label>
-          <input type="number" step="0.01" id="in-dxy" placeholder="p.ej., 101.20">
-        </div>
-        <div>
-          <label>Δ Liquidez (%)</label>
-          <input type="number" step="0.01" id="in-liq" placeholder="p.ej., 0.30">
-        </div>
-        <div>
-          <label>BofA Bull &amp; Bear</label>
-          <input type="number" step="0.1" id="in-bofa" placeholder="p.ej., 1.9">
-        </div>
+        <div><label>HY OAS (pb)</label><input type="number" id="in-hy" placeholder="p.ej., 380"></div>
+        <div><label>Curva 10y−2y (%)</label><input type="number" step="0.01" id="in-curve" placeholder="p.ej., 0.50"></div>
+        <div><label>DXY</label><input type="number" step="0.01" id="in-dxy" placeholder="auto si usas FRED"></div>
+        <div><label>Δ Liquidez (%)</label><input type="number" step="0.01" id="in-liq" placeholder="auto si usas FRED"></div>
+        <div><label>BofA Bull &amp; Bear</label><input type="number" step="0.1" id="in-bofa" placeholder="p.ej., 1.9"></div>
       </div>
     </div>
 
@@ -195,102 +173,40 @@
       <h2>Ajustes</h2>
       <div class="grid g-2" style="margin-top:8px">
         <div>
-          <p class="pill">Pesos (se normalizan en el cálculo)</p>
+          <p class="pill">Pesos (se normalizan implícitamente)</p>
           <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px">
-            <div>
-              <label>HY</label>
-              <input type="number" step="0.05" id="w-hy" value="0.3">
-            </div>
-            <div>
-              <label>Curva</label>
-              <input type="number" step="0.05" id="w-curve" value="0.2">
-            </div>
-            <div>
-              <label>DXY</label>
-              <input type="number" step="0.05" id="w-dxy" value="0.2">
-            </div>
-            <div>
-              <label>Liquidez</label>
-              <input type="number" step="0.05" id="w-liq" value="0.2">
-            </div>
-            <div>
-              <label>BofA</label>
-              <input type="number" step="0.05" id="w-bofa" value="0.1">
-            </div>
+            <div><label>HY</label><input type="number" step="0.05" id="w-hy" value="0.3"></div>
+            <div><label>Curva</label><input type="number" step="0.05" id="w-curve" value="0.2"></div>
+            <div><label>DXY</label><input type="number" step="0.05" id="w-dxy" value="0.2"></div>
+            <div><label>Liquidez</label><input type="number" step="0.05" id="w-liq" value="0.2"></div>
+            <div><label>BofA</label><input type="number" step="0.05" id="w-bofa" value="0.1"></div>
           </div>
         </div>
         <div>
           <p class="pill">Umbrales</p>
           <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px">
             <div style="grid-column:span 2"><b>High Yield (pb)</b></div>
-            <div>
-              <label>Verde &lt;</label>
-              <input type="number" id="t-hy-green" value="400">
-            </div>
-            <div>
-              <label>Ámbar &lt;</label>
-              <input type="number" id="t-hy-yellow" value="600">
-            </div>
-
+            <div><label>Verde &lt;</label><input type="number" id="t-hy-green" value="400"></div>
+            <div><label>Ámbar &lt;</label><input type="number" id="t-hy-yellow" value="600"></div>
             <div style="grid-column:span 2;margin-top:6px"><b>Curva (%, 10y−2y)</b></div>
-            <div>
-              <label>Verde &gt;</label>
-              <input type="number" step="0.01" id="t-curve-green" value="0">
-            </div>
-            <div>
-              <label>Ámbar &gt;</label>
-              <input type="number" step="0.01" id="t-curve-yellow" value="-0.2">
-            </div>
-
+            <div><label>Verde &gt;</label><input type="number" step="0.01" id="t-curve-green" value="0"></div>
+            <div><label>Ámbar &gt;</label><input type="number" step="0.01" id="t-curve-yellow" value="-0.2"></div>
             <div style="grid-column:span 2;margin-top:6px"><b>DXY</b></div>
-            <div>
-              <label>Verde &lt;</label>
-              <input type="number" step="0.01" id="t-dxy-green" value="100">
-            </div>
-            <div>
-              <label>Ámbar &lt;</label>
-              <input type="number" step="0.01" id="t-dxy-yellow" value="105">
-            </div>
-
+            <div><label>Verde &lt;</label><input type="number" step="0.01" id="t-dxy-green" value="100"></div>
+            <div><label>Ámbar &lt;</label><input type="number" step="0.01" id="t-dxy-yellow" value="105"></div>
             <div style="grid-column:span 2;margin-top:6px"><b>Liquidez (Δ %)</b></div>
-            <div>
-              <label>Verde &gt;</label>
-              <input type="number" step="0.01" id="t-liq-green" value="0.2">
-            </div>
-            <div>
-              <label>Ámbar &gt;</label>
-              <input type="number" step="0.01" id="t-liq-yellow" value="0">
-            </div>
-
+            <div><label>Verde &gt;</label><input type="number" step="0.01" id="t-liq-green" value="0.2"></div>
+            <div><label>Ámbar &gt;</label><input type="number" step="0.01" id="t-liq-yellow" value="0"></div>
             <div style="grid-column:span 2;margin-top:6px"><b>BofA Bull &amp; Bear</b></div>
-            <div>
-              <label>Verde &lt;</label>
-              <input type="number" step="0.1" id="t-bofa-green" value="2">
-            </div>
-            <div>
-              <label>Ámbar &lt;</label>
-              <input type="number" step="0.1" id="t-bofa-yellow" value="8">
-            </div>
+            <div><label>Verde &lt;</label><input type="number" step="0.1" id="t-bofa-green" value="2"></div>
+            <div><label>Ámbar &lt;</label><input type="number" step="0.1" id="t-bofa-yellow" value="8"></div>
           </div>
         </div>
       </div>
       <div class="footer">0 = verde, 1 = ámbar, 2 = rojo. Corte global: &lt;0.70 verde · 0.70–1.30 ámbar · &gt;=1.30 rojo.</div>
     </div>
 
-    <div class="card" style="margin-top:16px">
-      <h2>Auto‑fetch (opcional) desde FRED</h2>
-      <p class="light">Si introduces tu <b>FRED API key</b>, puedo traer los últimos datos de: <b>BAMLH0A0HYM2</b> (HY OAS), <b>T10Y2Y</b> (curva), <b>WALCL</b> (balance Fed) y <b>RRPONTSYD</b> (RRP). DXY y BofA siguen manuales.</p>
-      <div class="row" style="margin-top:10px">
-        <input type="text" id="fredKey" placeholder="Tu FRED API key" style="flex:1">
-        <button class="btn" id="fetchBtn">Actualizar desde FRED</button>
-        <span id="fetchStatus" class="light"></span>
-      </div>
-      <div id="lastDates" class="light" style="margin-top:8px"></div>
-    </div>
-
-    <div class="footer" style="margin-top:16px">
-      *Herramienta educativa, no constituye asesoramiento financiero. © 2025
-    </div>
+    <div class="footer" style="margin-top:16px">*Herramienta educativa. © 2025</div>
   </div>
 
   <script>
@@ -299,219 +215,171 @@
     const state = {
       hy:null, curve:null, dxy:null, liq:null, bofa:null,
       w:{hy:0.3, curve:0.2, dxy:0.2, liq:0.2, bofa:0.1},
-      t:{
-        hy:{green:400,yellow:600},
-        curve:{green:0.0,yellow:-0.2},
-        dxy:{green:100,yellow:105},
-        liq:{green:0.2,yellow:0.0},
-        bofa:{green:2.0,yellow:8.0}
-      }
+      t:{ hy:{green:400,yellow:600}, curve:{green:0.0,yellow:-0.2},
+          dxy:{green:100,yellow:105}, liq:{green:0.2,yellow:0.0}, bofa:{green:2.0,yellow:8.0} }
     };
 
-    function loadSaved(){
+    function saveLocal(){ localStorage.setItem('geo-risk-dashboard-v3', JSON.stringify({
+      state, fredKey: $('fredKey').value, auto: $('autoOnLoad').checked
+    })); }
+
+    function loadLocal(){
       try{
-        const raw = localStorage.getItem('geo-risk-dashboard-v2');
-        if(!raw) return;
-        const s = JSON.parse(raw);
-        Object.assign(state, s);
-        if(s.hy!==null) $('in-hy').value = s.hy;
-        if(s.curve!==null) $('in-curve').value = s.curve;
-        if(s.dxy!==null) $('in-dxy').value = s.dxy;
-        if(s.liq!==null) $('in-liq').value = s.liq;
-        if(s.bofa!==null) $('in-bofa').value = s.bofa;
-        $('w-hy').value = state.w.hy;
-        $('w-curve').value = state.w.curve;
-        $('w-dxy').value = state.w.dxy;
-        $('w-liq').value = state.w.liq;
-        $('w-bofa').value = state.w.bofa;
-        $('t-hy-green').value = state.t.hy.green;
-        $('t-hy-yellow').value = state.t.hy.yellow;
-        $('t-curve-green').value = state.t.curve.green;
-        $('t-curve-yellow').value = state.t.curve.yellow;
-        $('t-dxy-green').value = state.t.dxy.green;
-        $('t-dxy-yellow').value = state.t.dxy.yellow;
-        $('t-liq-green').value = state.t.liq.green;
-        $('t-liq-yellow').value = state.t.liq.yellow;
-        $('t-bofa-green').value = state.t.bofa.green;
-        $('t-bofa-yellow').value = state.t.bofa.yellow;
+        const raw = localStorage.getItem('geo-risk-dashboard-v3'); if(!raw) return;
+        const obj = JSON.parse(raw);
+        if(obj.state){ Object.assign(state, obj.state); }
+        if(obj.fredKey){ $('fredKey').value = obj.fredKey; }
+        if(obj.auto){ $('autoOnLoad').checked = true; }
       }catch(e){}
     }
 
-    function save(){
-      localStorage.setItem('geo-risk-dashboard-v2', JSON.stringify(state));
-    }
-
-    function levelHy(v){
-      if(v < state.t.hy.green) return 'green';
-      if(v < state.t.hy.yellow) return 'yellow';
-      return 'red';
-    }
-    function levelCurve(v){
-      if(v > state.t.curve.green) return 'green';
-      if(v > state.t.curve.yellow) return 'yellow';
-      return 'red';
-    }
-    function levelDxy(v){
-      if(v < state.t.dxy.green) return 'green';
-      if(v < state.t.dxy.yellow) return 'yellow';
-      return 'red';
-    }
-    function levelLiq(v){
-      if(v > state.t.liq.green) return 'green';
-      if(v > state.t.liq.yellow) return 'yellow';
-      return 'red';
-    }
-    function levelBofa(v){
-      if(v < state.t.bofa.green) return 'green';
-      if(v < state.t.bofa.yellow) return 'yellow';
-      return 'red';
-    }
-    function badge(el, lvl){
-      el.className = 'badge ' + (lvl||'');
-      el.textContent = lvl ? (lvl==='green'?'favorable':(lvl==='yellow'?'neutral':'tensión')) : '—';
-    }
-    function dot(el, lvl){
-      el.className = 'dot ' + (lvl||'');
-    }
-    function setVal(el, v, suffix=''){
-      el.textContent = (v===null||Number.isNaN(v)) ? '—' : (suffix? (v.toFixed(2)+suffix) : (Math.abs(v)>=1? v.toFixed(2) : v.toFixed(3)));
-    }
+    // Levels & rendering
+    const lvlFns = {
+      hy: v => v < state.t.hy.green ? 'green' : (v < state.t.hy.yellow ? 'yellow' : 'red'),
+      curve: v => v > state.t.curve.green ? 'green' : (v > state.t.curve.yellow ? 'yellow' : 'red'),
+      dxy: v => v < state.t.dxy.green ? 'green' : (v < state.t.dxy.yellow ? 'yellow' : 'red'),
+      liq: v => v > state.t.liq.green ? 'green' : (v > state.t.liq.yellow ? 'yellow' : 'red'),
+      bofa: v => v < state.t.bofa.green ? 'green' : (v < state.t.bofa.yellow ? 'yellow' : 'red'),
+    };
+    function badge(el, lvl){ el.className='badge '+(lvl||''); el.textContent = lvl? (lvl==='green'?'favorable':(lvl==='yellow'?'neutral':'tensión')):'—'; }
+    function dot(el, lvl){ el.className='dot '+(lvl||''); }
+    function setVal(el, v, suffix=''){ el.textContent = (v==null||Number.isNaN(v))?'—': (suffix? (Number(v).toFixed(2)+suffix) : (Math.abs(v)>=1? Number(v).toFixed(2) : Number(v).toFixed(3))); }
     function toScore(l){ return l==='green'?0 : (l==='yellow'?1:2); }
 
     function render(){
-      const hyLvl = state.hy==null? null : levelHy(state.hy);
-      const cvLvl = state.curve==null? null : levelCurve(state.curve);
-      const dxLvl = state.dxy==null? null : levelDxy(state.dxy);
-      const lqLvl = state.liq==null? null : levelLiq(state.liq);
-      const bbLvl = state.bofa==null? null : levelBofa(state.bofa);
+      const hyLvl = state.hy==null? null : lvlFns.hy(state.hy);
+      const cvLvl = state.curve==null? null : lvlFns.curve(state.curve);
+      const dxLvl = state.dxy==null? null : lvlFns.dxy(state.dxy);
+      const lqLvl = state.liq==null? null : lvlFns.liq(state.liq);
+      const bbLvl = state.bofa==null? null : lvlFns.bofa(state.bofa);
 
-      setVal($('hyVal'), state.hy, ' pb');
-      badge($('hyBadge'), hyLvl); dot($('hyDot'), hyLvl);
+      setVal($('hyVal'), state.hy, ' pb'); badge($('hyBadge'), hyLvl); dot($('hyDot'), hyLvl);
+      setVal($('curveVal'), state.curve, ' %'); badge($('curveBadge'), cvLvl); dot($('curveDot'), cvLvl);
+      setVal($('dxyVal'), state.dxy, ''); badge($('dxyBadge'), dxLvl); dot($('dxyDot'), dxLvl);
+      setVal($('liqVal'), state.liq, ' %'); badge($('liqBadge'), lqLvl); dot($('liqDot'), lqLvl);
+      setVal($('bofaVal'), state.bofa, ''); badge($('bofaBadge'), bbLvl); dot($('bofaDot'), bbLvl);
 
-      setVal($('curveVal'), state.curve, ' %');
-      badge($('curveBadge'), cvLvl); dot($('curveDot'), cvLvl);
+      const parts = []; let wsum = 0;
+      if(hyLvl){ parts.push([toScore(hyLvl), state.w.hy]); wsum+=state.w.hy; }
+      if(cvLvl){ parts.push([toScore(cvLvl), state.w.curve]); wsum+=state.w.curve; }
+      if(dxLvl){ parts.push([toScore(dxLvl), state.w.dxy]); wsum+=state.w.dxy; }
+      if(lqLvl){ parts.push([toScore(lqLvl), state.w.liq]); wsum+=state.w.liq; }
+      if(bbLvl){ parts.push([toScore(bbLvl), state.w.bofa]); wsum+=state.w.bofa; }
 
-      setVal($('dxyVal'), state.dxy, '');
-      badge($('dxyBadge'), dxLvl); dot($('dxyDot'), dxLvl);
-
-      setVal($('liqVal'), state.liq, ' %');
-      badge($('liqBadge'), lqLvl); dot($('liqDot'), lqLvl);
-
-      setVal($('bofaVal'), state.bofa, '');
-      badge($('bofaBadge'), bbLvl); dot($('bofaDot'), bbLvl);
-
-      const parts = [];
-      let wsum = 0;
-      if(hyLvl){ parts.push([toScore(hyLvl), state.w.hy]); wsum += state.w.hy; }
-      if(cvLvl){ parts.push([toScore(cvLvl), state.w.curve]); wsum += state.w.curve; }
-      if(dxLvl){ parts.push([toScore(dxLvl), state.w.dxy]); wsum += state.w.dxy; }
-      if(lqLvl){ parts.push([toScore(lqLvl), state.w.liq]); wsum += state.w.liq; }
-      if(bbLvl){ parts.push([toScore(bbLvl), state.w.bofa]); wsum += state.w.bofa; }
-
-      let traffic = $('traffic');
-      let status = $('statusText');
-      let scoreText = $('scoreText');
-      let weightsText = $('weightsText');
-
-      if(parts.length===0 || wsum===0){
-        traffic.className = 'traffic';
-        status.textContent = 'Completa los valores';
-        scoreText.textContent = '';
-        weightsText.textContent = 'Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa;
-        return;
-      }
+      const traffic = $('traffic'), status=$('statusText'), scoreText=$('scoreText'), weightsText=$('weightsText');
+      if(parts.length===0 || wsum===0){ traffic.className='traffic'; status.textContent='Completa los valores'; scoreText.textContent=''; weightsText.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa; return; }
       const score = parts.reduce((s,[v,w])=>s+v*w,0) / wsum;
-      let lvl='yellow';
-      if(score < 0.70) lvl='green';
-      else if(score >= 1.30) lvl='red';
-
-      traffic.className = 'traffic ' + lvl;
-      status.textContent = (lvl==='green'?'Riesgo‑ON':(lvl==='yellow'?'Neutro / Precaución':'Riesgo‑OFF'));
-      scoreText.textContent = 'Score ponderado: ' + score.toFixed(2) + ' (0=verde, 1=ámbar, 2=rojo)';
-      weightsText.textContent = 'Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa;
+      const lvl = score < 0.70 ? 'green' : (score >= 1.30 ? 'red' : 'yellow');
+      traffic.className='traffic '+lvl; status.textContent=(lvl==='green'?'Riesgo‑ON':(lvl==='yellow'?'Neutro / Precaución':'Riesgo‑OFF'));
+      scoreText.textContent='Score ponderado: '+score.toFixed(2)+' (0=verde, 1=ámbar, 2=rojo)';
+      weightsText.textContent='Pesos: HY '+state.w.hy+', Curva '+state.w.curve+', DXY '+state.w.dxy+', Liquidez '+state.w.liq+', BofA '+state.w.bofa;
     }
 
-    $('in-hy').addEventListener('input', e=>{ state.hy = e.target.value===''?null:Number(e.target.value); render(); });
-    $('in-curve').addEventListener('input', e=>{ state.curve = e.target.value===''?null:Number(e.target.value); render(); });
-    $('in-dxy').addEventListener('input', e=>{ state.dxy = e.target.value===''?null:Number(e.target.value); render(); });
-    $('in-liq').addEventListener('input', e=>{ state.liq = e.target.value===''?null:Number(e.target.value); render(); });
-    $('in-bofa').addEventListener('input', e=>{ state.bofa = e.target.value===''?null:Number(e.target.value); render(); });
+    // Manual inputs
+    $('in-hy').addEventListener('input', e=>{ state.hy = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
+    $('in-curve').addEventListener('input', e=>{ state.curve = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
+    $('in-dxy').addEventListener('input', e=>{ state.dxy = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
+    $('in-liq').addEventListener('input', e=>{ state.liq = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
+    $('in-bofa').addEventListener('input', e=>{ state.bofa = e.target.value===''?null:Number(e.target.value); render(); saveLocal(); });
 
-    $('w-hy').addEventListener('input', e=>{ state.w.hy = Number(e.target.value); render(); });
-    $('w-curve').addEventListener('input', e=>{ state.w.curve = Number(e.target.value); render(); });
-    $('w-dxy').addEventListener('input', e=>{ state.w.dxy = Number(e.target.value); render(); });
-    $('w-liq').addEventListener('input', e=>{ state.w.liq = Number(e.target.value); render(); });
-    $('w-bofa').addEventListener('input', e=>{ state.w.bofa = Number(e.target.value); render(); });
+    // Weights & thresholds
+    ['w-hy','w-curve','w-dxy','w-liq','w-bofa'].forEach(id=>{
+      $(id).addEventListener('input', e=>{ const k=id.split('-')[1]; state.w[k]=Number(e.target.value); render(); saveLocal(); });
+    });
+    [['t-hy-green','hy','green'],['t-hy-yellow','hy','yellow'],['t-curve-green','curve','green'],['t-curve-yellow','curve','yellow'],
+     ['t-dxy-green','dxy','green'],['t-dxy-yellow','dxy','yellow'],['t-liq-green','liq','green'],['t-liq-yellow','liq','yellow'],
+     ['t-bofa-green','bofa','green'],['t-bofa-yellow','bofa','yellow']]
+     .forEach(([id,sec,key])=>{ $(id).addEventListener('input', e=>{ state.t[sec][key]=Number(e.target.value); render(); saveLocal(); }); });
 
-    $('t-hy-green').addEventListener('input', e=>{ state.t.hy.green = Number(e.target.value); render(); });
-    $('t-hy-yellow').addEventListener('input', e=>{ state.t.hy.yellow = Number(e.target.value); render(); });
-    $('t-curve-green').addEventListener('input', e=>{ state.t.curve.green = Number(e.target.value); render(); });
-    $('t-curve-yellow').addEventListener('input', e=>{ state.t.curve.yellow = Number(e.target.value); render(); });
-    $('t-dxy-green').addEventListener('input', e=>{ state.t.dxy.green = Number(e.target.value); render(); });
-    $('t-dxy-yellow').addEventListener('input', e=>{ state.t.dxy.yellow = Number(e.target.value); render(); });
-    $('t-liq-green').addEventListener('input', e=>{ state.t.liq.green = Number(e.target.value); render(); });
-    $('t-liq-yellow').addEventListener('input', e=>{ state.t.liq.yellow = Number(e.target.value); render(); });
-    $('t-bofa-green').addEventListener('input', e=>{ state.t.bofa.green = Number(e.target.value); render(); });
-    $('t-bofa-yellow').addEventListener('input', e=>{ state.t.bofa.yellow = Number(e.target.value); render(); });
+    $('saveBtn').addEventListener('click', ()=>{ saveLocal(); alert('Guardado en este navegador.'); });
+    $('resetBtn').addEventListener('click', ()=>{ localStorage.removeItem('geo-risk-dashboard-v3'); location.reload(); });
 
-    $('saveBtn').addEventListener('click', ()=>{ save(); alert('Guardado en este navegador.'); });
-    $('resetBtn').addEventListener('click', ()=>{ localStorage.removeItem('geo-risk-dashboard-v2'); location.reload(); });
-
-    async function fredSeriesLast(key, seriesId){
-      const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json&observation_start=2020-01-01`;
-      const r = await fetch(url);
-      if(!r.ok) throw new Error('FRED error '+r.status);
-      const j = await r.json();
-      const obs = (j.observations||[]).filter(o=>o.value!=='.');
-      if(!obs.length) throw new Error('Sin datos en '+seriesId);
-      const last = obs[obs.length-1];
-      return {date:last.date, value:Number(last.value)};
+    // FRED helpers
+    async function fredSeriesLast(key, seriesId, start='2020-01-01'){
+      const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json&observation_start=${start}`;
+      const r = await fetch(url); if(!r.ok) throw new Error('FRED '+seriesId+' '+r.status);
+      const j = await r.json(); const obs = (j.observations||[]).filter(o=>o.value!=='.');
+      if(!obs.length) throw new Error('Sin datos '+seriesId);
+      return obs[obs.length-1];
     }
-    async function fetchFromFred(){
+    async function fredSeriesFirstFrom(key, seriesId, daysBack){
+      const start = new Date(Date.now() - daysBack*86400000).toISOString().slice(0,10);
+      const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json&observation_start=${start}`;
+      const r = await fetch(url); const j = await r.json();
+      const obs = (j.observations||[]).filter(o=>o.value!=='.'); return obs.length? obs[0]:null;
+    }
+
+    function computeDXY(EURUSD, USDJPY, GBPUSD, USDCAD, USDSEK, USDCHF){
+      // ICE DXY formula
+      const k = 50.14348112;
+      return k * Math.pow(EURUSD, -0.576) * Math.pow(USDJPY, 0.136) * Math.pow(GBPUSD, -0.119)
+               * Math.pow(USDCAD, 0.091) * Math.pow(USDSEK, 0.042) * Math.pow(USDCHF, 0.036);
+    }
+
+    async function fetchFromFred(runDxy=true){
       const key = $('fredKey').value.trim();
       if(!key){ alert('Introduce tu FRED API key.'); return; }
       $('fetchStatus').textContent = 'Consultando FRED…';
       try{
+        // Core indicators
         const [hy, curve, walcl, rrp] = await Promise.all([
           fredSeriesLast(key,'BAMLH0A0HYM2'),
           fredSeriesLast(key,'T10Y2Y'),
           fredSeriesLast(key,'WALCL'),
           fredSeriesLast(key,'RRPONTSYD')
         ]);
-        async function seriesPrev(key, seriesId, daysBack){
-          const start = new Date(Date.now() - daysBack*86400000).toISOString().slice(0,10);
-          const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${key}&file_type=json&observation_start=${start}`;
-          const r = await fetch(url); const j = await r.json();
-          const obs = (j.observations||[]).filter(o=>o.value!=='.');
-          return obs.length? {date:obs[0].date, value:Number(obs[0].value)} : null;
-        }
-        const walclPrev = await seriesPrev(key,'WALCL',14);
-        const rrpPrev = await seriesPrev(key,'RRPONTSYD',14);
+        const walclPrev = await fredSeriesFirstFrom(key,'WALCL',14);
+        const rrpPrev = await fredSeriesFirstFrom(key,'RRPONTSYD',14);
 
-        state.hy = hy.value; $('in-hy').value = hy.value;
-        state.curve = curve.value; $('in-curve').value = curve.value;
+        state.hy = Number(hy.value);
+        state.curve = Number(curve.value);
 
         if(walclPrev && rrpPrev){
-          const netNow = walcl.value*1e6 - rrp.value*1e6;
-          const netPrev = walclPrev.value*1e6 - rrpPrev.value*1e6;
-          const deltaPct = ((netNow - netPrev)/netPrev)*100;
-          state.liq = +deltaPct.toFixed(3);
-          $('in-liq').value = state.liq;
-          $('lastDates').textContent = `FRED: HY ${hy.date} · Curva ${curve.date} · WALCL ${walcl.date} · RRP ${rrp.date}`;
-        }else{
-          $('lastDates').textContent = `FRED: HY ${hy.date} · Curva ${curve.date} · WALCL ${walcl.date} · RRP ${rrp.date}`;
+          const netNow = Number(walcl.value)*1e6 - Number(rrp.value)*1e6;
+          const netPrev = Number(walclPrev.value)*1e6 - Number(rrpPrev.value)*1e6;
+          state.liq = +(((netNow - netPrev)/netPrev)*100).toFixed(3);
+        }
+        $('lastDates').textContent = `HY ${hy.date} · Curva ${curve.date} · WALCL ${walcl.date} · RRP ${rrp.date}`;
+
+        // DXY via FX basket (optional)
+        if(runDxy){
+          const [eurusd, usdjpy, gbpusd, usdcad, usdsek, usdchf] = await Promise.all([
+            fredSeriesLast(key,'DEXUSEU'), // USD per EUR => EURUSD
+            fredSeriesLast(key,'DEXJPUS'), // JPY per USD => USDJPY
+            fredSeriesLast(key,'DEXUSUK'), // USD per GBP => GBPUSD
+            fredSeriesLast(key,'DEXCAUS'), // CAD per USD => USDCAD
+            fredSeriesLast(key,'DEXSDUS'), // SEK per USD => USDSEK
+            fredSeriesLast(key,'DEXSZUS')  // CHF per USD => USDCHF
+          ]);
+          state.dxy = +computeDXY(Number(eurusd.value), Number(usdjpy.value), Number(gbpusd.value),
+                                  Number(usdcad.value), Number(usdsek.value), Number(usdchf.value)).toFixed(2);
+          $('lastDates').textContent += ` · FX ${eurusd.date}`;
         }
 
-        render();
+        // Reflect in manual inputs for transparencia
+        $('in-hy').value = state.hy ?? '';
+        $('in-curve').value = state.curve ?? '';
+        $('in-liq').value = state.liq ?? '';
+        $('in-dxy').value = state.dxy ?? '';
+
+        render(); saveLocal();
         $('fetchStatus').textContent = 'Actualizado.';
       }catch(e){
-        $('fetchStatus').textContent = 'Error: ' + e.message;
+        $('fetchStatus').textContent = 'Error: '+e.message;
       }
     }
-    $('fetchBtn').addEventListener('click', fetchFromFred);
 
-    loadSaved();
+    $('saveKey').addEventListener('click', ()=>{ saveLocal(); alert('Key guardada en este navegador.'); });
+    $('fetchBtn').addEventListener('click', ()=>fetchFromFred(true));
+    $('autoOnLoad').addEventListener('change', saveLocal);
+
+    // Init
+    loadLocal();
     render();
+    // Auto fetch if enabled and key present
+    window.addEventListener('load', ()=>{
+      if($('fredKey').value && $('autoOnLoad').checked){ fetchFromFred(true); }
+    });
   </script>
 </body>
 </html>
